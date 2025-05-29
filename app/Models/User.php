@@ -51,5 +51,45 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Role::class);
     }
+
+    public function permissions()
+    {
+        return $this->roles()->with('permissions')->get()->pluck('permissions')->flatten()->unique('id');
+    }
+
+    public function hasRole($role): bool
+    {
+        if (is_string($role)) {
+            return $this->roles->contains('name', $role);
+        }
+
+        return !!$role->intersect($this->roles)->count();
+    }
     
+    public function hasPermission($permission): bool
+    {
+        if (is_string($permission)) {
+            return $this->permissions()->contains('name', $permission);
+        }
+
+        return !!$permission->intersect($this->permissions())->count();
+    }
+
+    public function assignRole($role): void
+    {
+        if (is_string($role)) {
+            $role = Role::whereName($role)->firstOrFail();
+        }
+
+        $this->roles()->syncWithoutDetaching($role);
+    }
+
+    public function removeRole($role): void
+    {
+        if (is_string($role)) {
+            $role = Role::whereName($role)->firstOrFail();
+        }
+
+        $this->roles()->detach($role);
+    }
 }
